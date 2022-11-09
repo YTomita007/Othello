@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Arrays;
 import java.util.Collections;
 
+import javax.print.attribute.standard.Sides;
 import javax.swing.*;
 
 class Othello extends JFrame implements ActionListener{
@@ -13,14 +14,14 @@ class Othello extends JFrame implements ActionListener{
     static final int SIDE = 8;      // 一辺あたりのマスの数
     final String WHITESTONE = "◯";  // 白石
     final String BLACKSTONE = "●";  // 黒石
-    int i, j;                       // カウンタ変数
+    int i, j, k, l;                 // カウンタ変数
     int cs = WIDTH / SIDE;          // マスのサイズ
     int cell;                       // セル番号管理配列
     int clickPlace;                 // 選択したセル番号
     String mystone;                 // 自分の石
     String opstone;                 // 相手の石
     int whiteCount, blackCount;     // それぞれの石の数
-    int result;                     // 引っくり返す石の数
+    int ableCount;                  // 引っくり返す石の数
     int emptyCells = SIDE * SIDE;   // 空セルの数
     boolean playerFlg;              // プレイヤー制御フラグ
     boolean turnFlg;                // ターン制御フラグ
@@ -29,6 +30,7 @@ class Othello extends JFrame implements ActionListener{
     JPanel panel = new JPanel();    // メインパネルの生成
     JLabel playerLabel;             // プレイヤー表示ラベル
     JLabel countLabel;              // 石の数の表示
+    JButton passButton;             // パスボタン
     JButton resetButton;            // リセットボタン
 
     // CPU操作系
@@ -56,6 +58,12 @@ class Othello extends JFrame implements ActionListener{
         headP.add(countLabel, BorderLayout.CENTER);
         getContentPane().add(headP, BorderLayout.CENTER);
 
+        passButton = new JButton();
+        passButton.setText("pass");
+        passButton.addActionListener(this);
+        passButton.setActionCommand(String.valueOf("pass"));
+        getContentPane().add(passButton, BorderLayout.CENTER);
+
         resetButton = new JButton();
         resetButton.setText("reset");
         resetButton.addActionListener(this);
@@ -71,20 +79,18 @@ class Othello extends JFrame implements ActionListener{
         setResizable(false);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setVisible(true);
-        changePlayer();
+        changeColor();
     }
 
     public void initBoard(){    // ボード初期化
         panel.setLayout(null);
         board = new JButton[SIDE*SIDE];
-        cpuFlg = true;
 
         for(i=0; i<SIDE; i++){
             for(j=0;j<SIDE;j++){
                 cell = i * SIDE + j;
                 board[cell] = new JButton();
                 board[cell].setOpaque(true);    // セルの透明性の有効
-                // board[cell].setBorderPainted(false);  // セルの枠線を消す
                 board[cell].setBackground(Color.GREEN);
                 board[cell].setBounds(i * cs, j * cs, cs, cs);
                 board[cell].addActionListener(this);
@@ -113,24 +119,28 @@ class Othello extends JFrame implements ActionListener{
         panel.revalidate();
         panel.repaint();
         initBoard();
-        changePlayer();
+        changeColor();
     }
 
     public void changePlayer(){
+        changeColor();
+        if(cpuFlg){
+            cpuAlgorithm();
+            cpuFlg = false;
+        }
+        changeColor();  // ①CPU機能を使う場合はここをコメントアウト解除（コメントアウトする場所は2箇所ある）
+    }
+
+    public void changeColor(){
         if(mystone == WHITESTONE){
             mystone = BLACKSTONE;
+            opstone = WHITESTONE;
         }else{
             mystone = WHITESTONE;
+            opstone = BLACKSTONE;
         }
         playerLabel.setText("現在のプレーヤーは" + (mystone) + "です");
         checkCount();
-        if(cpuFlg){
-            cpuFlg = false;
-        }else{
-            cpuFlg = true;
-            cpuAlgorithm();
-            changePlayer();
-        }
     }
 
     public void checkCount(){
@@ -148,58 +158,71 @@ class Othello extends JFrame implements ActionListener{
         countLabel.setText("石の数：白は" + whiteCount + "黒は" + blackCount);
     }
 
-    public void checkAvailable(int clickNum, String mystone){
-        if(mystone == WHITESTONE){
-            opstone = BLACKSTONE;
-        }else{
-            opstone = WHITESTONE;
+    public void checkAvailable(int clickNum, String mystone){   // ひっくり返せるか確認メソッド
+        BoardFlipLine(clickNum, -SIDE - 1);     // 左上
+        BoardFlipLine(clickNum, -SIDE);         // 左
+        BoardFlipLine(clickNum, -SIDE + 1);     // 左下
+        BoardFlipLine(clickNum, -1);            // 上
+        BoardFlipLine(clickNum, 1); // 下
+        BoardFlipLine(clickNum, SIDE - 1);      // 右上
+        BoardFlipLine(clickNum, SIDE);          // 右
+        BoardFlipLine(clickNum, SIDE + 1);      // 右下
+        if(turnFlg){
+            board[clickNum].setEnabled(false);
         }
-        BoardFlipLine(clickNum, -SIDE - 1);
-        BoardFlipLine(clickNum, -SIDE);
-        BoardFlipLine(clickNum, -SIDE + 1);
-        BoardFlipLine(clickNum, -1);
-        BoardFlipLine(clickNum, 1);
-        BoardFlipLine(clickNum, SIDE - 1);
-        BoardFlipLine(clickNum, SIDE);
-        BoardFlipLine(clickNum, SIDE + 1);
     }
 
-    public boolean BoardFlipLine(int clickNum, int directLine){    // clickNumを起点にdirectLine方向にチェック
-        result = 0;
+    public void BoardFlipLine(int baseNum, int directLine){    // clickNumを起点にdirectLine方向にチェック
+        ableCount = 0;              // ひっくり返せる可能性のある数カウント初期化
         int addLine = directLine;   // directLine方向に検証を進めるための変数
-        while(clickNum + addLine > 0 && clickNum + addLine < board.length){
-            if(board[clickNum + addLine].getText().equals(opstone)){
-                result++;
-            }else if(board[clickNum + addLine].getText().equals(mystone)){
-                break;
-            }else{
-                result = 0;
-                break;
+        boolean ableFlg = false;    // ひっくり返せるフラグの初期化
+        if(board[baseNum].isEnabled()){
+            findingStones:
+                while(baseNum + addLine > 0 && baseNum + addLine < board.length){
+                    if(board[baseNum + addLine].getText().equals(opstone)){
+                        ableCount++;
+                    }else if(board[baseNum + addLine].getText().equals(mystone)){
+                        ableFlg = true; // ひっくり返せるフラグ
+                        break findingStones;
+                    }else{
+                        ableCount = 0;
+                        break findingStones;
+                    }
+                    if(directLine != SIDE && directLine != -SIDE){  // 縦のボード場外へチェックへ行かないように制御
+                        if(((baseNum + addLine) % SIDE == 0 && ableFlg == false)
+                        || ((baseNum + addLine) % SIDE == SIDE - 1 && ableFlg == false )){
+                            break findingStones;
+                        }
+                    }
+                    addLine = addLine + directLine; // directLine方向に検証変数addLineに加算
+                }
+            if(ableCount != 0 && ableFlg){    // ableCountが1以上、かつableFlgがtrueであること
+                board[baseNum].setText(mystone);
+                for(i=0;i<ableCount;i++){
+                    board[baseNum + (directLine * i + directLine)].setText(mystone);
+                    board[baseNum + (directLine * i + directLine)].setEnabled(false);
+                }
+                turnFlg = true;
+                // デバッグ用
+                // System.out.println("可能時の番号：" + baseNum);
+                // System.out.println("可能時の方向：" + directLine);
+                // System.out.println("計算結果：" + (baseNum + addLine) % SIDE);
             }
-            addLine = addLine + directLine;
         }
-        if(result != 0){    // resultが1以上であれば相手の石を変更させることができる
-            board[clickNum].setText(mystone);
-            board[clickNum].setEnabled(false);
-            for(i=0;i<result;i++){
-                board[clickNum + (directLine * i + directLine)].setText(mystone);
-                board[clickNum + (directLine * i + directLine)].setEnabled(false);
-            }
-            turnFlg = true;
-            return true;
-        }
-        return false;
     }
 
     public void actionPerformed(ActionEvent e){     // クリックアクションメソッド
         turnFlg = false;        // 石を置くことができるか判断するフラグ（falseが初期値）
         if(e.getActionCommand().equals("reset")){
             resetBoard();
+        }else if(e.getActionCommand().equals("pass")){
+            changePlayer();
         }else{
             clickPlace = Integer.parseInt(e.getActionCommand());
             checkAvailable(clickPlace, mystone);
             System.out.println(clickPlace); // デバッグ用
             if(turnFlg){            // 石を置くことができない場合はturnFlgはfalse
+                cpuFlg = true;      // ②CPU機能を使う場合はここをコメントアウト解除（コメントアウトする場所は2箇所ある）
                 changePlayer();     // Playerを交代するメソッド（石の色を交代する）
             }else{
                 System.out.println("そこには置けません");
@@ -213,72 +236,67 @@ class Othello extends JFrame implements ActionListener{
         Collections.shuffle(c);
         Collections.shuffle(d);
         Collections.shuffle(e);
-        cpuScore = new int[SIDE*SIDE];  // コンピューターのスコア配列生成
-        for(i=0;i<board.length;i++){
-            switch(i){
-                case 0: case 7: case 56: case 63:
-                    cpuScore[i] = 10;
-                    break;
-                case 1: case 6: case 8: case 15: case 48: case 55: case 57: case 62:
-                    cpuScore[i] = -5;
-                    break;
-                case 9: case 14: case 49: case 54:
-                    cpuScore[i] = -10;
-                    break;
-                case 2: case 5: case 16: case 18: case 21: case 23:
-                case 40: case 42: case 45: case 47: case 58: case 61:
-                    cpuScore[i] = 5;
-                    break;
-                default:
-                    cpuScore[i] = 0;
-            }
-        }
+        // 現在未使用
+        // cpuScore = new int[SIDE*SIDE];  // コンピューターのスコア配列生成
+        // for(k=0;k<board.length;k++){
+        //     switch(k){
+        //         case 0: case 7: case 56: case 63:
+        //             cpuScore[k] = 10;
+        //             break;
+        //         case 1: case 6: case 8: case 15: case 48: case 55: case 57: case 62:
+        //             cpuScore[k] = -5;
+        //             break;
+        //         case 9: case 14: case 49: case 54:
+        //             cpuScore[k] = -10;
+        //             break;
+        //         case 2: case 5: case 16: case 18: case 21: case 23:
+        //         case 40: case 42: case 45: case 47: case 58: case 61:
+        //             cpuScore[k] = 5;
+        //             break;
+        //         default:
+        //             cpuScore[k] = 0;
+        //     }
+        // }
+        cpuFlg = false;
     }
 
     // コンピューターの評価計算メソッド
     public void cpuAlgorithm(){
-        // try {    // sleepコマンドでCPUの実行をわざと遅くする
-        //     Thread.sleep(1000);
-        // } catch (InterruptedException e1) {
-        //     e1.printStackTrace();
-        // } 
         turnFlg = false;        // 石を置くことができるか判断するフラグ（falseが初期値）
-        for(i=0;i<a.size();i++){
-            checkAvailable(a.get(i), mystone);
+        for(k=0;k<a.size();k++){
+            checkAvailable(a.get(k), mystone);
             if(turnFlg){
                 return;
             }
         }
-        for(i=0;i<b.size();i++){
-            checkAvailable(b.get(i), mystone);
+        for(k=0;k<b.size();k++){
+            checkAvailable(b.get(k), mystone);
             if(turnFlg){
                 return;
             }
         }
-        for(i=0;i<c.size();i++){
-            checkAvailable(c.get(i), mystone);
+        for(k=0;k<c.size();k++){
+            checkAvailable(c.get(k), mystone);
             if(turnFlg){
                 return;
             }
         }
-        for(i=0;i<d.size();i++){
-            checkAvailable(d.get(i), mystone);
+        for(k=0;k<d.size();k++){
+            checkAvailable(d.get(k), mystone);
             if(turnFlg){
                 return;
             }
-            System.out.println(d.get(i));
         }
-        for(i=0;i<e.size();i++){
-            checkAvailable(e.get(i), mystone);
+        for(k=0;k<e.size();k++){
+            checkAvailable(e.get(k), mystone);
             if(turnFlg){
                 return;
             }
-            System.out.println(e.get(i));
         }
-
         if(!turnFlg){
             System.out.println("CPUは置けません");
             turnFlg = true;
+            changePlayer();
         }
     }
 }
