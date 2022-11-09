@@ -3,8 +3,6 @@ import java.awt.event.*;
 import java.util.List;
 import java.util.Arrays;
 import java.util.Collections;
-
-import javax.print.attribute.standard.Sides;
 import javax.swing.*;
 
 class Othello extends JFrame implements ActionListener{
@@ -169,6 +167,7 @@ class Othello extends JFrame implements ActionListener{
         BoardFlipLine(clickNum, SIDE + 1);      // 右下
         if(turnFlg){
             board[clickNum].setEnabled(false);
+            emptyCells--;
         }
     }
 
@@ -211,6 +210,16 @@ class Othello extends JFrame implements ActionListener{
         }
     }
 
+    public void checkMate(){
+        if(emptyCells == 0){
+            if(whiteCount > blackCount){
+                new OthelloResult(WHITESTONE, 1);
+            }else{
+                new OthelloResult(BLACKSTONE, 2);
+            }
+        }
+    }
+
     public void actionPerformed(ActionEvent e){     // クリックアクションメソッド
         turnFlg = false;        // 石を置くことができるか判断するフラグ（falseが初期値）
         if(e.getActionCommand().equals("reset")){
@@ -220,7 +229,7 @@ class Othello extends JFrame implements ActionListener{
         }else{
             clickPlace = Integer.parseInt(e.getActionCommand());
             checkAvailable(clickPlace, mystone);
-            System.out.println(clickPlace); // デバッグ用
+            // System.out.println(clickPlace); // デバッグ用
             if(turnFlg){            // 石を置くことができない場合はturnFlgはfalse
                 cpuFlg = true;      // ②CPU機能を使う場合はここをコメントアウト解除（コメントアウトする場所は2箇所ある）
                 changePlayer();     // Playerを交代するメソッド（石の色を交代する）
@@ -228,6 +237,8 @@ class Othello extends JFrame implements ActionListener{
                 System.out.println("そこには置けません");
             }
         }
+        System.out.println(emptyCells);
+        checkMate();
     }
 
     public void cpuInitilizer(){
