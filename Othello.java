@@ -9,29 +9,29 @@ import javax.swing.*;
 
 class Othello extends JFrame implements ActionListener{
 
-    static final int WIDTH = 480;   // 画面サイズ（横）
-    static final int HEIGHT = 540;  // 画面サイズ（縦）
-    static final int SIDE = 8;      // 一辺あたりのマスの数
-    static final String WHITESTONE = "◯";  // 白石
-    static final String BLACKSTONE = "●";  // 黒石
-    int i, j, k, l;                 // カウンタ変数
-    int cs = WIDTH / SIDE;          // マスのサイズ
-    int cell;                       // セル番号管理配列
-    int clickPlace;                 // 選択したセル番号
-    String mystone;                 // 自分の石
-    String opstone;                 // 相手の石
-    int whiteCount, blackCount;     // それぞれの石の数
-    int ableCount;                  // 引っくり返す石の数
-    int emptyCells = SIDE * SIDE;   // 空セルの数
-    boolean playerFlg;              // プレイヤー制御フラグ
-    boolean turnFlg;                // ターン制御フラグ
-    JButton board[];                // ボード配列（8*8）
-    JPanel headP = new JPanel();    // ヘッダーパネルの生成
-    JPanel panel = new JPanel();    // メインパネルの生成
-    JLabel playerLabel;             // プレイヤー表示ラベル
-    JLabel countLabel;              // 石の数の表示
-    JButton passButton;             // パスボタン
-    JButton resetButton;            // リセットボタン
+    static final int WIDTH = 480;           // 画面サイズ（横）
+    static final int HEIGHT = 540;          // 画面サイズ（縦）
+    static final int SIDE = 8;              // 一辺あたりのマスの数
+    static final String WHITESTONE = "◯";   // 白石
+    static final String BLACKSTONE = "●";   // 黒石
+    int i, j, k, l;                         // カウンタ変数
+    int cs = WIDTH / SIDE;                  // マスのサイズ
+    int cell;                               // セル番号管理配列
+    int clickPlace;                         // 選択したセル番号
+    String mystone;                         // 自分の石
+    String opstone;                         // 相手の石
+    int whiteCount, blackCount;             // それぞれの石の数
+    int ableCount;                          // 引っくり返す石の数
+    int emptyCells = SIDE * SIDE;           // 空セルの数
+    boolean playerFlg;                      // プレイヤー制御フラグ
+    boolean turnFlg;                        // ターン制御フラグ
+    JButton board[];                        // ボード配列（8*8）
+    JPanel headP = new JPanel();            // ヘッダーパネルの生成
+    JPanel panel = new JPanel();            // メインパネルの生成
+    JLabel playerLabel;                     // プレイヤー表示ラベル
+    JLabel countLabel;                      // 石の数の表示
+    JButton passButton;                     // パスボタン
+    JButton resetButton;                    // リセットボタン
     Timer timer = new Timer(false);
     TimerTask cpuTurn;
 
@@ -137,7 +137,6 @@ class Othello extends JFrame implements ActionListener{
             };
             timer.schedule(cpuTurn, 1000);    
         }
-        // changeColor();  // ①CPU機能を使う場合はここをコメントアウト解除（コメントアウトする場所は2箇所ある）
     }
 
     public void changeColor(){
@@ -236,6 +235,7 @@ class Othello extends JFrame implements ActionListener{
         if(e.getActionCommand().equals("reset")){
             resetBoard();
         }else if(e.getActionCommand().equals("pass")){
+            cpuFlg = true;      // ①CPU機能を使う場合はここをコメントアウト解除（コメントアウトする場所は2箇所ある）
             changePlayer();
         }else{
             clickPlace = Integer.parseInt(e.getActionCommand());
