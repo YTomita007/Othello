@@ -1,6 +1,8 @@
 import java.awt.*;
 import java.awt.event.*;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.Arrays;
 import java.util.Collections;
 import javax.swing.*;
@@ -10,8 +12,8 @@ class Othello extends JFrame implements ActionListener{
     static final int WIDTH = 480;   // 画面サイズ（横）
     static final int HEIGHT = 540;  // 画面サイズ（縦）
     static final int SIDE = 8;      // 一辺あたりのマスの数
-    final String WHITESTONE = "◯";  // 白石
-    final String BLACKSTONE = "●";  // 黒石
+    static final String WHITESTONE = "◯";  // 白石
+    static final String BLACKSTONE = "●";  // 黒石
     int i, j, k, l;                 // カウンタ変数
     int cs = WIDTH / SIDE;          // マスのサイズ
     int cell;                       // セル番号管理配列
@@ -30,6 +32,8 @@ class Othello extends JFrame implements ActionListener{
     JLabel countLabel;              // 石の数の表示
     JButton passButton;             // パスボタン
     JButton resetButton;            // リセットボタン
+    Timer timer = new Timer(false);
+    TimerTask cpuTurn;
 
     // CPU操作系
     List<Integer> a = (List<Integer>) Arrays.asList(0, 7, 56, 63);
@@ -123,10 +127,17 @@ class Othello extends JFrame implements ActionListener{
     public void changePlayer(){
         changeColor();
         if(cpuFlg){
-            cpuAlgorithm();
-            cpuFlg = false;
+            cpuTurn = new TimerTask() {
+                @Override
+                public void run() {
+                    cpuAlgorithm();
+                    changeColor();
+                    cpuFlg = false;
+                }
+            };
+            timer.schedule(cpuTurn, 1000);    
         }
-        changeColor();  // ①CPU機能を使う場合はここをコメントアウト解除（コメントアウトする場所は2箇所ある）
+        // changeColor();  // ①CPU機能を使う場合はここをコメントアウト解除（コメントアウトする場所は2箇所ある）
     }
 
     public void changeColor(){
@@ -307,7 +318,6 @@ class Othello extends JFrame implements ActionListener{
         if(!turnFlg){
             System.out.println("CPUは置けません");
             turnFlg = true;
-            changePlayer();
         }
     }
 }
